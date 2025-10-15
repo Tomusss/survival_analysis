@@ -1,0 +1,221 @@
+---
+title: "Sprawozdanie 1"
+subtitle: "Analiza przeżycia"
+author: "Tomasz Warzecha,   album 282261"
+date: "`r Sys.Date()`"
+header-includes:
+   - \usepackage[OT4]{polski}
+   - \usepackage[utf8]{inputenc}
+   - \usepackage{graphicx}
+   - \usepackage{float}
+output: 
+  pdf_document:
+    toc: true
+    fig_caption: yes
+    fig_width: 5 
+    fig_height: 4 
+    number_sections: true
+fontsize: 12pt 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "", fig.align = "center")
+```
+
+# Lista 1
+
+## Zadanie 1 - Deklaracje
+
+Poniżej kolejno deklarowane są funkcje gęstości, dystrybuanty, dystrybuanty odwrotnej (funkcji kwantylowej oraz funkcji hazardu rozkładu *We($\alpha$, $\beta$)*)
+
+* Do wyznaczenia gęstości funkcji użyto wzoru:
+
+\begin{equation}
+f(x) = (\frac{\alpha}{\beta}) * \frac{x}{\beta} * \exp(-(\frac{x}{\beta}^\alpha))
+\end{equation}
+
+```{r}
+
+gestosc <- function(x, alfa, beta, gamma){
+  return((gamma * alfa / beta) * 
+    (x / beta)^(alfa - 1) *
+    exp(-(x / beta)^alfa) *
+    (1 - exp(-(x / beta)^alfa))^(gamma - 1) *
+    (x > 0))
+}
+  
+
+```
+
+* Do wyznaczenia dystrybuanty funkcji zastosowano wzór:
+
+\begin{equation}
+F(x) = 1 - \exp[-(\frac{t}{\beta})^\alpha]
+\end{equation}
+
+```{r}
+
+dystrybuanta <- function(x, alfa, beta){
+  return((1-exp(-(x/beta)^alfa))^gamma)
+  }
+
+```
+
+* Do wyznaczenia funkcji kwantylowej wzięto wzór:
+
+\begin{equation}
+Q(p) = \beta * (-ln(1-p^\frac{1}{\gamma}))^\frac{1}{\alpha}
+\end{equation}
+
+```{r}
+
+funkcja_kwantylowa <- function(p, alfa, beta, gamma){
+  return(beta*(-(1-p^(1/gamma)^(1/alfa))))
+}
+
+```
+
+* Do wyznaczenia funkcji hazardu wykorzystano wzór:
+
+\begin{equation}
+h(x) = \frac{f(x)}{1-F(x)}
+\end{equation}
+
+gdzie f(x) jest funkcją gęstości rozkładu *We($\alpha$, $\beta$)* oraz F(x) jest dystrybuantą tego rozkładu.
+
+```{r}
+funkcja_hazardu <- function(x, alfa, beta, gamma){
+  return(gestosc(x, alfa, beta, gamma)/(1-dystrybuanta(x, alfa, beta)))
+}
+```
+
+## Zadanie 2 - Wykresy dla wybranych parametrów rozkładu
+
+Poniżej przedstawione są wykresy
+
+```{r, echo=FALSE}
+
+
+library(ggplot2)
+library(patchwork)
+
+dystrybuanta <- function(x, alfa, beta,gamma){
+  return((1-exp(-(x/beta)^alfa))^gamma)
+  }
+
+
+funkcja_hazardu <- function(x, alfa, beta, gamma){
+  return(gestosc(x, alfa, beta, gamma)/(1-dystrybuanta(x, alfa, beta,gamma)))}
+
+x <- seq(0, 10, length.out = 500)
+ 
+wykres_1  <- ggplot(data.frame(x, y = funkcja_hazardu(x, 1, 2, 3)),
+                    aes(x, y)) +
+                    geom_line(color = "magenta", linewidth = 1)
+                    ggtitle("alfa=1, beta=2, gamma=1") +
+                    theme_minimal()
+
+wykres_2  <- ggplot(data.frame(x, y = funkcja_hazardu(x, 0, 1, 1)),
+                    aes(x, y)) +
+                    geom_line(color = "lightblue", linewidth = 1) +
+                    ggtitle("alfa=0, beta=1, gamma=0") +
+                    theme_minimal()
+
+wykres_3  <- ggplot(data.frame(x, y = funkcja_hazardu(x, 5, 10, 15)),
+                    aes(x, y)) +
+                    geom_line(color = "darkblue", linewidth = 1) +
+                    ggtitle("alfa=0, beta=1, gamma=0") +
+                    theme_minimal()
+wykres_4  <- ggplot(data.frame(x, y = funkcja_hazardu(x, 1/4, 1/2, 3/4)),
+                    aes(x, y)) +
+                    geom_line(color = "pink", linewidth = 1) +
+                    ggtitle("alfa=0, beta=1, gamma=0") +
+                    theme_minimal()
+(wykres_1 | wykres_2) /
+(wykres_3 | wykres_4)
+```
+
+## Program do generowania zmiennych z rozkładu $EW(\alpha, \beta, \gamma)$
+
+W tym zadaniu została napisana funkcja, która wyznacza nam $p$ liczb z rozkładu $EW(\alpha, \beta, \gamma)$. 
+```{r }
+zmienne_ew <- function(p, alfa, beta, gamma) {
+  if (any(c(alfa, beta, gamma) <= 0))
+    stop("Podaj poprawne parametry")
+  
+  p <- runif(p)
+  x <- beta * (-log(1-p^(1/gamma)))^(1/alfa)
+  return(x)
+}
+
+```
+Zastosowaliśmy tutaj metodę odwóconej dystybuanty:
+
+\begin{equation}
+F(x) =  (1 - e^{-(\frac{t}{\beta})^\alpha})^\gamma 
+\end{equation}
+
+Co po odwróceniu daje nam funkcję kwantyli:
+
+\begin{equation}
+Q(p) = \beta \, [-\ln(1 - P^{1/\gamma})]^{1/\alpha} , P \sim U(0, 1)
+\end{equation}
+
+Gdzie podajemy liczby z przedziału $[0;1]$ i dostajemy liczbę z rozkładu $EW(\alpha, \beta, \gamma)$
+
+
+## Zadanie 4
+```{r}
+set.seed(987)
+par(mfrow = c(1,2))
+n_l  <- c(50,100)
+par_l <- list(c(alfa = 1.5, beta = 2, gamma = 1),
+  c(alfa = 2, beta = 3, gamma = 0.8) )
+for (par in par_l){
+  for (n in n_l){
+    x <- zmienne_ew(n, par["alfa"], par["beta"], par["gamma"])
+    p <- seq(0, max(x)*1.2, length.out = 150)
+    x_r <- gestosc(p, par[["alfa"]], par[["beta"]], par[["gamma"]])
+    hist(x, probability = TRUE, ylim = c(0,0.5),
+         main = sprintf("EW(α=%.1f, β=%.1f, γ=%.1f), n=%d",
+                        par["alfa"], par["beta"], par["gamma"], n))
+    lines(p, x_r, col = "red", lwd = 2)
+
+
+  }
+}
+```
+
+## Zadanie 5 
+
+```{r}
+x = c(1,2,3,5)
+statystyki <- function(x){
+  suma <- 0
+  for (el in x){
+    suma <- suma + el
+  }
+  srednia <- suma/length(x)
+  
+  if (length(x)%%2 == 0) {
+   mediana <- (x[length(x)/2]+x[(length(x)/2)+1])/2
+  } else { mediana <- x[floor(length(x)/2) + 1]}
+  
+  suma <- 0
+  for (el in x){
+    suma <- suma + (el-srednia)^2
+  }
+  odch <- (suma/(n-1))^(1/2)
+  wyn <- c(srednia,mediana,odch)
+  return(wyn)
+  
+}
+
+statystyki(x)
+
+
+
+```
+
